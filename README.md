@@ -1,59 +1,90 @@
-# 练习
-主题：摇滚音乐视频APP - shout
-
-# 步骤：
-1. 预备
-创建一个名叫shout的react-native项目
-在xcode中允许该项目使用http请求
-
-安装必须的组件
-npm install react-navigation --save
-npm install react-native-af-video-player --save
-react-native link react-native-video
-react-native link react-native-keep-awake
-react-native link react-native-vector-icons
-react-native link react-native-orientation
-react-native link react-native-linear-gradient
-
-在项目根目录建立src文件夹，导入demo/shout下的所有资源文件
-项目文件结构完备，只需要在根目录的App.js中导入src/App.js即可:
-```jsx
-import App from './src/App.js';
-export default App;
+###初始化雪花
+首先来个五十片雪花吧，在class外面定义一个数组。
 ```
-
-2. 每个页面需要呈现
-## HomeScreen
-设置页面背景色为黑色，使用ScrollView和Image组件显示videos.json中所有视频的封面图片(键名是cover)
-图片宽100%，高度233, 每张图片之间有5像素的margin
-点击图片页面可以跳转到VideoScreen，并带上该视频的连接
-
-提示：
-```jsx
-// 这样可以导入视频数据
-import videos from './videos.json';
+const snowNumber = 50;
+for (var i = 0; i < snowNumber; i++) {
+	arr.push(i);
+}
 ```
-请参考 demo/ScrollView.js
-
-
-## VideoScreen
-设置页面背景色为黑色，通过HomeScreen提交的视频连接，使用Video组件来播放它，另外视频需要居中显示
-
-提示：
-```jsx
-// 视频组件使用方式
-import Video from 'react-native-af-video-player'
-<Video url={{uri: video.url}} />
+###设置每片雪花动画的初始值
+为了创建一个动画，我们首先要创建一个动画使用的值。
 ```
+import React from 'react';
+import {
+  View,
+  StyleSheet,
+  PanResponder,
+  Dimensions,
+  Animated,
+  Image,
+  Easing
+} from 'react-native';
 
-
-## AboutScreen
-设置页面背景色为黑色，使用Image组件进行居中显示about.png
-```jsx
-// 显示本地图片
-<Image source={require('图片路径')} />
+export default class Snow extends React.Component {
+  constructor(props) {
+    super(props);
+    arr.forEach((value) => {
+      this.animatedValue[value] = new Animated.Value(0);
+    });
+  }
 ```
+###为每片雪花创建一个animated view
+由于每片雪花的动画是一样的，因此我们让每片雪花使用同样的样式`this.snowAnimate()`,该方法返回一个样式对象。
+```
+  render() {
+    const animations = arr.map((a, i) => {
+      return (
+        <Animated.View
+          key={i}
+          style={[styles.snowBox, this.snowAnimate(a)]}
+        >
+		  <Image source={Snow} style={styles.snow}/>
+        </Animated.View>
+      );
+    });
+    return (
+      <View style={styles.container}>
+	    {animations}     
+      </View>
+    );
+  }
+```
+###为每片雪花的创建动画
+由于想让无限的落雪，因此在函数一开始又将每片雪花的动画值设置成了0。
+使用`animated.timing`创建了一个动画，使一个值按照一个过渡曲线而随时间变化。（消耗类型的），在它开始后又调用了本身，这是创建无限动画的一种方式。Animated.stagger()：一个动画数组，传入一个时间参数来设置队列动画间的延迟，即在前一个动画开始之后，隔一段指定时间才开始执行下一个动画里面的动画，并不关心前一个动画是否已经完成，所以有可能会出现同时执行（重叠）的情况。设置好，每片雪花的相隔时间，这样就能让雪一片一片飘落啦！
+```
+  animateSnow () {
+    arr.forEach((value) => {
+      this.animatedValue[value].setValue(0)
+    });
+    const animations = arr.map((item) => {
+      return Animated.timing(
+        this.animatedValue[item],
+        {
+          toValue: snowNumber,
+          duration: 10000,
+          easing: Easing.linear
+        }
+      );
+    })
+    Animated.stagger(300, animations).start(() => this.animateSnow());
+  }
+  
+```
+###每片雪花的动画样式
+为了让雪花飘落显得真实自然，这里使用`Math.random`打乱了雪花的左右顺序。
+```
+	snowAnimate (item) {
+		return {
+			position: 'absolute',
+			left: parseInt(Math.random()*(deviceWidth),10),
+			top: this.animatedValue[item].interpolate({
+				inputRange: [0, snowNumber],
+				outputRange: [-100, deviceHeight-100],
+			})
+    	}
 
-
-3. 完善
-为tab导航加上图标，stack导航加上页面标题
+	}
+```
+![雪花效果图哦~](https://upload-images.jianshu.io/upload_images/7225268-bbe20a1108da8d56.gif?imageMogr2/auto-orient/strip)
+##最后，祝大家圣诞快乐！！！
